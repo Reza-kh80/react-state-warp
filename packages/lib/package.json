@@ -45,10 +45,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/USERNAME/react-state-warp.git"
+    "url": "git+https://github.com/Reza-kh80/react-state-warp.git"
   },
   "bugs": {
-    "url": "https://github.com/USERNAME/react-state-warp/issues"
+    "url": "https://github.com/Reza-kh80/react-state-warp/issues"
   },
-  "homepage": "https://github.com/USERNAME/react-state-warp#readme"
+  "homepage": "https://github.com/Reza-kh80/react-state-warp#readme"
 }
