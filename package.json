@@ -1,0 +1,14 @@
+{
+  "name": "react-state-warp-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r run dev",
+    "lint": "pnpm -r run lint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

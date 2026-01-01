@@ -1,0 +1,54 @@
+{
+  "name": "react-state-warp",
+  "version": "0.0.1",
+  "description": "Teleport React state between devices instantly using QR codes & WebRTC.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "react",
+    "state",
+    "webrtc",
+    "sync",
+    "p2p",
+    "hook"
+  ],
+  "author": "Reza Kheradmandi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/USERNAME/react-state-warp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/USERNAME/react-state-warp/issues"
+  },
+  "homepage": "https://github.com/USERNAME/react-state-warp#readme"
+}
