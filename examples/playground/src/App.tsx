@@ -1,74 +1,105 @@
-import { useEffect, useState } from "react";
-import QRCode from "react-qr-code";
-import { useStateWarp } from "react-state-warp";
-import "./App.css";
+import { useEffect, useState, useMemo } from 'react';
+import QRCode from 'react-qr-code';
+import { useStateWarp } from 'react-state-warp';
+import './App.css';
+
+type AppState = {
+  text: string;
+  file: File | null;
+};
 
 function App() {
-  // 1. بررسی کن آیا در URL آیدی وجود دارد؟ (برای تشخیص موبایل)
   const [sessionId, setSessionId] = useState<string | undefined>();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("warp_id");
+    const id = params.get('warp_id');
     if (id) setSessionId(id);
   }, []);
 
-  // 2. فراخوانی هوک جادویی
-  const { data, send, connectionLink, isConnected, peerId, isHost } =
-    useStateWarp(
-      { text: "", count: 0 }, // وضعیت اولیه
-      { initialSessionId: sessionId } // اگر آیدی باشد، کلاینت می‌شود
-    );
+  const { data, send, status, connectionLink, isHost, error, peerId } = useStateWarp<AppState>(
+    { text: '', file: null },
+    { initialSessionId: sessionId }
+  );
+
+  useEffect(() => {
+    if (data.file instanceof Blob || data.file instanceof File) {
+      const url = URL.createObjectURL(data.file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [data.file]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      send({ ...data, file: e.target.files[0] });
+    }
+  };
+
+  const statusColor = useMemo(() => {
+    switch (status) {
+      case 'CONNECTED': return '#10b981';
+      case 'CONNECTING': return '#f59e0b';
+      case 'DISCONNECTED': return '#ef4444';
+      default: return '#6b7280';
+    }
+  }, [status]);
 
   return (
-    <div
-      style={{
-        maxWidth: 600,
-        margin: "0 auto",
-        padding: 20,
-        textAlign: "center",
-      }}
-    >
-      <h1>⚡ React State Warp Demo</h1>
+    <div className="container">
+      <header>
+        <h1>⚡ React State Warp</h1>
+        <div className="badge" style={{ backgroundColor: isHost ? '#3b82f6' : '#8b5cf6' }}>
+          {isHost ? 'HOST (Desktop)' : 'CLIENT (Mobile)'}
+        </div>
+      </header>
 
-      <div style={{ border: "1px solid #ccc", padding: 20, borderRadius: 10 }}>
-        <h3>Mode: {isHost ? "💻 Host (Desktop)" : "📱 Client (Mobile)"}</h3>
-        <p>
-          Status:{" "}
-          <strong>{isConnected ? "🟢 Connected" : "🔴 Waiting..."}</strong>
-        </p>
-
-        <textarea
-          style={{ width: "100%", height: 100, fontSize: 18 }}
-          value={data.text}
-          onChange={(e) => send({ ...data, text: e.target.value })}
-          placeholder="Start typing here..."
-        />
-
-        <div style={{ marginTop: 20 }}>
-          <button onClick={() => send({ ...data, count: data.count + 1 })}>
-            Count is: {data.count}
-          </button>
+      <div className="card">
+        <div className="status-bar">
+          <span className="status-dot" style={{ backgroundColor: statusColor }} />
+          <span className="status-text">{status}</span>
         </div>
 
-        {/* فقط هاست باید QR کد را نشان دهد و وقتی وصل شد مخفی کند */}
-        {isHost && connectionLink && !isConnected && (
-          <div style={{ marginTop: 40 }}>
-            <p>Scan with your phone to teleport state:</p>
-            <div
-              style={{
-                background: "white",
-                padding: 16,
-                display: "inline-block",
-              }}
-            >
-              <QRCode value={connectionLink} />
+        {error && <div className="error-box">{error}</div>}
+
+        <div className="input-group">
+          <label>Shared Text</label>
+          <textarea
+            value={data.text}
+            onChange={(e) => send({ ...data, text: e.target.value })}
+            placeholder="Type something to sync..."
+          />
+        </div>
+
+        <div className="input-group">
+          <label>Shared File (Image)</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+        </div>
+
+        {previewUrl && (
+          <div className="preview-box">
+            <p>Synced Image Preview:</p>
+            <img src={previewUrl} alt="Synced" />
+          </div>
+        )}
+
+        {isHost && connectionLink && status !== 'CONNECTED' && (
+          <div className="qr-section">
+            <p>Scan to Teleport State:</p>
+            <div className="qr-code">
+              <QRCode value={connectionLink} size={180} />
             </div>
+            <p className="device-id">ID: {peerId}</p>
           </div>
         )}
       </div>
-
-      <p style={{ marginTop: 50, fontSize: 12, color: "#888" }}>ID: {peerId}</p>
     </div>
   );
 }
