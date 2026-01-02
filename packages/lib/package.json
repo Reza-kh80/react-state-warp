@@ -1,6 +1,6 @@
 {
   "name": "react-state-warp",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Teleport React state between devices instantly using QR codes & WebRTC.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
