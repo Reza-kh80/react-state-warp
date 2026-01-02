@@ -1,105 +1,227 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, type ChangeEvent } from 'react';
 import QRCode from 'react-qr-code';
 import { useStateWarp } from 'react-state-warp';
 import './App.css';
 
-type AppState = {
-  text: string;
-  file: File | null;
+type UserProfile = {
+  firstName: string;
+  lastName: string;
+  bio: string;
+  avatar: any;
+  isVerified: boolean;
+};
+
+const INITIAL_STATE: UserProfile = {
+  firstName: '',
+  lastName: '',
+  bio: '',
+  avatar: null,
+  isVerified: false,
 };
 
 function App() {
-  const [sessionId, setSessionId] = useState<string | undefined>();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('warp_id');
-    if (id) setSessionId(id);
+  const sessionId = useMemo(() => {
+    return new URLSearchParams(window.location.search).get('warp_id') || undefined;
   }, []);
 
-  const { data, send, status, connectionLink, isHost, error, peerId } = useStateWarp<AppState>(
-    { text: '', file: null },
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const { data, send, status, connectionLink, isHost, error, peerId } = useStateWarp<UserProfile>(
+    INITIAL_STATE,
     { initialSessionId: sessionId }
   );
 
   useEffect(() => {
-    if (data.file instanceof Blob || data.file instanceof File) {
-      const url = URL.createObjectURL(data.file);
-      setPreviewUrl(url);
+    const file = data.avatar as any;
+    if (file && (file instanceof Blob || file instanceof File)) {
+      const url = URL.createObjectURL(file);
+      setAvatarPreview(url);
       return () => URL.revokeObjectURL(url);
-    } else {
-      setPreviewUrl(null);
     }
-  }, [data.file]);
+    setAvatarPreview(null);
+  }, [data.avatar]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      send({ ...data, file: e.target.files[0] });
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    send({ ...data, [name]: value });
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      send({ ...data, avatar: e.target.files[0] });
     }
   };
 
-  const statusColor = useMemo(() => {
-    switch (status) {
-      case 'CONNECTED': return '#10b981';
-      case 'CONNECTING': return '#f59e0b';
-      case 'DISCONNECTED': return '#ef4444';
-      default: return '#6b7280';
+  const handleVerify = () => {
+    if (!data.firstName || !data.lastName) {
+      alert("Please fill in your name first.");
+      return;
     }
-  }, [status]);
+    send({ ...data, isVerified: true });
+  };
+
+  const handleReset = () => {
+    send(INITIAL_STATE);
+  };
+
+  const copyLink = async () => {
+    if (connectionLink) {
+      try {
+        await navigator.clipboard.writeText(connectionLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const isEnabled = isHost || status === 'CONNECTED';
+
+  if (data.isVerified) {
+    return (
+      <div className="layout">
+        <div className="card success-card">
+          <div className="success-icon">🎉</div>
+          <h1 className="title">Verification Complete!</h1>
+          <p className="subtitle">
+            The data has been successfully synced and verified on both devices.
+          </p>
+
+          <div className="summary-box">
+            <div className="summary-row">
+              <span>User:</span>
+              <strong>{data.firstName} {data.lastName}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Device ID:</span>
+              <code>{peerId?.substring(0, 6)}</code>
+            </div>
+            <div className="summary-status">
+              ✅ Verified Securely
+            </div>
+          </div>
+
+          <button onClick={handleReset} className="btn-secondary">
+            Start New Session
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container">
-      <header>
-        <h1>⚡ React State Warp</h1>
-        <div className="badge" style={{ backgroundColor: isHost ? '#3b82f6' : '#8b5cf6' }}>
-          {isHost ? 'HOST (Desktop)' : 'CLIENT (Mobile)'}
-        </div>
-      </header>
-
-      <div className="card">
-        <div className="status-bar">
-          <span className="status-dot" style={{ backgroundColor: statusColor }} />
-          <span className="status-text">{status}</span>
-        </div>
-
-        {error && <div className="error-box">{error}</div>}
-
-        <div className="input-group">
-          <label>Shared Text</label>
-          <textarea
-            value={data.text}
-            onChange={(e) => send({ ...data, text: e.target.value })}
-            placeholder="Type something to sync..."
-          />
-        </div>
-
-        <div className="input-group">
-          <label>Shared File (Image)</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-        </div>
-
-        {previewUrl && (
-          <div className="preview-box">
-            <p>Synced Image Preview:</p>
-            <img src={previewUrl} alt="Synced" />
+    <div className="layout">
+      <main className="card">
+        <header className="header">
+          <div className="badges">
+            <span className={`status-pill ${status.toLowerCase()}`}>
+              <span className="dot" /> {status}
+            </span>
+            <span className="role-pill">
+              {isHost ? 'DESKTOP' : 'MOBILE'}
+            </span>
           </div>
+          <h1 className="title">Identity Verification</h1>
+          <p className="subtitle">Complete the form to verify your session.</p>
+        </header>
+
+        {error && <div className="error-alert">{error}</div>}
+
+        {!isHost && status === 'CONNECTING' && (
+          <div className="loader">Syncing with Host...</div>
         )}
 
-        {isHost && connectionLink && status !== 'CONNECTED' && (
-          <div className="qr-section">
-            <p>Scan to Teleport State:</p>
-            <div className="qr-code">
-              <QRCode value={connectionLink} size={180} />
+        <div className="form-grid">
+          <div className="input-group">
+            <label>First Name</label>
+            <input
+              name="firstName"
+              value={data.firstName}
+              onChange={handleInputChange}
+              disabled={!isEnabled}
+              placeholder="Jane"
+            />
+          </div>
+
+          <div className="input-group">
+            <label>Last Name</label>
+            <input
+              name="lastName"
+              value={data.lastName}
+              onChange={handleInputChange}
+              disabled={!isEnabled}
+              placeholder="Doe"
+            />
+          </div>
+
+          <div className="input-group full-width">
+            <label>Bio (Optional)</label>
+            <textarea
+              name="bio"
+              value={data.bio}
+              onChange={handleInputChange}
+              disabled={!isEnabled}
+              placeholder="Short bio..."
+              rows={2}
+            />
+          </div>
+
+          <div className="input-group full-width">
+            <label>Upload ID / Photo</label>
+            <div className={`file-dropzone ${!isEnabled ? 'disabled' : ''}`}>
+              {avatarPreview ? (
+                <div className="avatar-preview">
+                  <img src={avatarPreview} alt="Avatar" />
+                  <div className="overlay">Change Photo</div>
+                </div>
+              ) : (
+                <div className="placeholder">
+                  <span>Tap to Upload</span>
+                  <small>JPG, PNG</small>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={!isEnabled}
+              />
             </div>
-            <p className="device-id">ID: {peerId}</p>
+          </div>
+        </div>
+
+        <div className="action-area">
+          <button
+            className="btn-primary"
+            onClick={handleVerify}
+            disabled={!isEnabled || !data.firstName}
+          >
+            Verify & Sync Data ✨
+          </button>
+        </div>
+
+        {isHost && connectionLink && !data.isVerified && (
+          <div className={`qr-container ${status === 'CONNECTED' ? 'minimized' : ''}`}>
+            <div className="qr-frame">
+              <QRCode
+                value={connectionLink}
+                size={120}
+                bgColor="#ffffff"
+                fgColor="#0f172a"
+              />
+            </div>
+            <div className="qr-content">
+              <h3>Switch to Mobile</h3>
+              <p>Scan to upload photo from phone</p>
+              <button onClick={copyLink} className="btn-copy">
+                {copied ? 'Copied' : 'Copy Link'}
+              </button>
+            </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
