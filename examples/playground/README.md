@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# 🆔 Identity Verification Demo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a **real-world demonstration** of the `react-state-warp` library.
+It simulates an **Identity Verification Flow** where a user starts filling out a profile on a Desktop and switches to Mobile to upload a selfie/ID card instantly.
 
-Currently, two official plugins are available:
+## 🌟 Features Showcased
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* **Cross-Device Handoff:** Transfer form state (Name, Bio) from Desktop to Mobile via QR Code.
+* **Binary File Sync:** Upload an image on Mobile and see it appear instantly on Desktop.
+* **Verification Workflow:** A "Verify" button on Mobile that locks and confirms the state on Desktop.
+* **Glassmorphism UI:** A modern, responsive interface.
 
-## React Compiler
+## 🛠 How to Run
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Since this is part of a Monorepo, please run the command from the **root directory**:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# From the project root:
+pnpm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**This will start the Vite server exposed to your local network (e.g., http://192.168.1.X:5173).**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📱 Testing the Flow
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Open the URL on your **Desktop**.
+
+2. Fill in the "First Name" and "Last Name".
+
+3. Scan the **QR Code** with your **Phone**.
+
+4. On your phone, tap **"Upload Image"** and select a photo.
+
+5. Watch it appear on your Desktop instantly!
+
+6. Tap **"Verify & Sync Data"** on your phone to complete the session.
+
+---
+Powered by [react-state-warp](https://github.com/Reza-kh80/react-state-warp)
