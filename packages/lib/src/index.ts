@@ -1,2 +1,2 @@
-export { useStateWarp } from "./useStateWarp";
-export type { WarpOptions, WarpState } from "./useStateWarp";
+export { useStateWarp } from './useStateWarp';
+export type { WarpOptions, WarpState, ConnectionStatus } from './useStateWarp';

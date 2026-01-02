@@ -1,132 +1,133 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import Peer, { type DataConnection } from "peerjs";
-import { v4 as uuidv4 } from "uuid";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Peer, { type DataConnection } from 'peerjs';
+import { v4 as uuidv4 } from 'uuid';
+import { serializeData, deserializeData } from './serializer';
+
+export type ConnectionStatus = 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED';
 
 export type WarpState<T> = {
   data: T;
-  isConnected: boolean;
+  status: ConnectionStatus;
   peerId: string | null;
-  connectionId: string | null;
   error: string | null;
 };
 
 export type WarpOptions = {
   initialSessionId?: string;
   onSync?: (data: any) => void;
+  debug?: boolean;
 };
 
-type SyncMessage<T> = {
-  type: "SYNC";
-  payload: T;
+type PayloadWrapper = {
+  type: 'SYNC';
+  payload: any;
 };
 
 export function useStateWarp<T>(initialData: T, options: WarpOptions = {}) {
   const [warpState, setWarpState] = useState<WarpState<T>>({
     data: initialData,
-    isConnected: false,
+    status: 'IDLE',
     peerId: null,
-    connectionId: null,
     error: null,
   });
 
   const peerRef = useRef<Peer | null>(null);
   const connRef = useRef<DataConnection | null>(null);
-
   const isHost = !options.initialSessionId;
 
-  useEffect(() => {
-    let peer: Peer;
-    if (isHost) {
-      peer = new Peer(uuidv4());
-    } else {
-      peer = new Peer();
-    }
+  const updateStatus = (status: ConnectionStatus) => {
+    setWarpState(prev => prev.status === status ? prev : { ...prev, status });
+  };
 
+  useEffect(() => {
+    updateStatus('CONNECTING');
+
+    const peer = isHost ? new Peer(uuidv4()) : new Peer();
     peerRef.current = peer;
 
-    peer.on("open", (id) => {
-      setWarpState((prev) => ({ ...prev, peerId: id }));
+    const handlePeerOpen = (id: string) => {
+      setWarpState(prev => ({
+        ...prev,
+        peerId: id,
+        status: isHost ? 'IDLE' : 'CONNECTING'
+      }));
 
       if (!isHost && options.initialSessionId) {
-        connectToHost(options.initialSessionId);
+        const conn = peer.connect(options.initialSessionId);
+        setupConnection(conn);
       }
-    });
+    };
 
-    peer.on("connection", (conn) => {
-      handleConnection(conn);
-    });
+    const handlePeerConnection = (conn: DataConnection) => {
+      setupConnection(conn);
+    };
 
-    peer.on("error", (err) => {
-      console.error("Warp Error:", err);
-      setWarpState((prev) => ({ ...prev, error: err.message }));
-    });
+    const handlePeerError = (err: any) => {
+      setWarpState(prev => ({ ...prev, status: 'DISCONNECTED', error: err.message }));
+    };
+
+    peer.on('open', handlePeerOpen);
+    peer.on('connection', handlePeerConnection);
+    peer.on('error', handlePeerError);
 
     return () => {
       peer.destroy();
     };
   }, []);
 
-  const handleConnection = useCallback(
-    (conn: DataConnection) => {
-      connRef.current = conn;
+  const setupConnection = (conn: DataConnection) => {
+    connRef.current = conn;
 
-      conn.on("open", () => {
-        setWarpState((prev) => ({
-          ...prev,
-          isConnected: true,
-          connectionId: conn.peer,
-        }));
+    conn.on('open', async () => {
+      updateStatus('CONNECTED');
+      setWarpState(prev => ({ ...prev, error: null }));
 
-        if (isHost) {
-          conn.send({ type: "SYNC", payload: initialData } as SyncMessage<T>);
-        }
-      });
+      if (isHost) {
+        const { cleaned } = await serializeData(initialData);
+        conn.send({ type: 'SYNC', payload: cleaned } as PayloadWrapper);
+      }
+    });
 
-      conn.on("data", (data) => {
-        const msg = data as SyncMessage<T>;
-        if (msg?.type === "SYNC") {
-          setWarpState((prev) => ({ ...prev, data: msg.payload }));
-          if (options.onSync) options.onSync(msg.payload);
-        }
-      });
+    conn.on('data', (raw: any) => {
+      const msg = raw as PayloadWrapper;
+      if (msg?.type === 'SYNC') {
+        const realData = deserializeData(msg.payload);
+        setWarpState(prev => ({ ...prev, data: realData }));
+        if (options.onSync) options.onSync(realData);
+      }
+    });
 
-      conn.on("close", () => {
-        setWarpState((prev) => ({
-          ...prev,
-          isConnected: false,
-          connectionId: null,
-        }));
-      });
-    },
-    [isHost, initialData, options]
-  );
+    conn.on('close', () => {
+      updateStatus('DISCONNECTED');
+    });
 
-  const connectToHost = (hostId: string) => {
-    if (!peerRef.current) return;
-    const conn = peerRef.current.connect(hostId);
-    handleConnection(conn);
+    conn.on('error', (err) => {
+      setWarpState(prev => ({ ...prev, error: err.message }));
+    });
   };
 
-  const send = useCallback((newData: T) => {
-    setWarpState((prev) => ({ ...prev, data: newData }));
+  const send = useCallback(async (newData: T) => {
+    setWarpState(prev => ({ ...prev, data: newData }));
 
     if (connRef.current && connRef.current.open) {
-      connRef.current.send({
-        type: "SYNC",
-        payload: newData,
-      } as SyncMessage<T>);
+      try {
+        const { cleaned } = await serializeData(newData);
+        connRef.current.send({ type: 'SYNC', payload: cleaned } as PayloadWrapper);
+      } catch (error: any) {
+        setWarpState(prev => ({ ...prev, error: error.message }));
+      }
     }
   }, []);
 
-  const connectionLink =
-    isHost && warpState.peerId
-      ? `${window.location.protocol}//${window.location.host}${window.location.pathname}?warp_id=${warpState.peerId}`
-      : null;
+  const connectionLink = isHost && warpState.peerId
+    ? `${window.location.protocol}//${window.location.host}${window.location.pathname}?warp_id=${warpState.peerId}`
+    : null;
 
   return {
     ...warpState,
+    isConnected: warpState.status === 'CONNECTED',
     send,
     connectionLink,
-    isHost,
+    isHost
   };
 }
