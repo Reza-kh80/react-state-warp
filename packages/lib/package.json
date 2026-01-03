@@ -1,7 +1,7 @@
 {
   "name": "react-state-warp",
-  "version": "1.0.0",
-  "description": "Teleport React state between devices instantly using QR codes & WebRTC.",
+  "version": "1.0.1",
+  "description": "Instant P2P state synchronization for React. Teleport data & files between devices without a backend.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -42,20 +42,33 @@
   },
   "keywords": [
     "react",
-    "state",
+    "react-hook",
     "webrtc",
-    "sync",
     "p2p",
-    "hook"
+    "peerjs",
+    "state-management",
+    "sync",
+    "cross-device",
+    "file-transfer",
+    "serverless",
+    "qr-code",
+    "handoff"
   ],
-  "author": "Reza Kheradmandi",
   "license": "MIT",
+  "homepage": "https://github.com/Reza-kh80/react-state-warp#readme",
+  "bugs": {
+    "url": "https://github.com/Reza-kh80/react-state-warp/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Reza-kh80/react-state-warp.git"
   },
-  "bugs": {
-    "url": "https://github.com/Reza-kh80/react-state-warp/issues"
+  "author": {
+    "name": "Reza Kheradmand",
+    "url": "https://github.com/Reza-kh80"
   },
-  "homepage": "https://github.com/Reza-kh80/react-state-warp#readme"
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/Reza-kh80"
+  }
 }
